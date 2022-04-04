@@ -1,0 +1,22 @@
+#!/bin/bash
+
+LastBackupDate=$( ls $HOME | grep -E "^Backup-" | sort -n | tail -1 | sed 's/^Backup-//')
+LastBackupName="$HOME/Backup-$LastBackupDate"
+
+if [[ $LastBackupDate == "" ]]; then
+	echo "There are no backups"
+	exit 1
+fi
+
+if [[ ! -d $HOME/restore ]]; then
+	mkdir $HOME/restore
+fi
+
+for file in $(ls $LastBackupName); do
+	IsLater=$(echo $file | grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+	if [[ $IsLater != "" ]]; then
+		continue
+	fi
+	cp "$LastBackupName/$file" "$HOME/restore/$file"
+	echo $file
+done

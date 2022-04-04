@@ -1,0 +1,60 @@
+#!/bin/bash
+
+if [[ ! -d "$HOME/source" ]]; then
+	echo "Source file does not exist"
+	exit 1
+fi
+
+if [[ ! -f "$HOME/backup-report" ]]; then
+	touch $HOME/backup-report
+fi
+
+CurDate=$(date +"%Y-%m-%d")
+CurName=$(echo "$HOME/Backup-$CurDate")
+
+
+LastBackupDate=$(ls ~ | grep -E "^Backup-" | sort -n | tail -1 | sed "s/Backup-//")
+LastBackupName="$HOME/Backup-$LastBackupDate"
+
+delta=$(( $(date --date "$CurDate" +%d) - $(date --date "$LastBackupDate" +%d) ))
+
+if (( $delta > 7 )) || [[ -z "$LastBackupDate" ]]; then
+	mkdir $CurName
+	cp -R "$HOME/source/." "$CurName"
+	{
+	echo "NEW BACKUP:"
+	echo "Backup-$CurDate"
+	echo "NEW FILES:"
+	echo $(ls $HOME/source)
+	} >> $HOME/backup-report
+else
+	{
+	echo "NEW BACKUP:"
+	echo "Backup-$CurDate"
+	} >> $HOME/backup-report
+	NewNames="NEW FILES:"
+	NamePairs="FILES REPLACED:"
+	for file in $(ls $HOME/source); do
+		if [[ -f "$LastBackupName/$file" ]]; then
+			size1=$(wc -c "$HOME/source/$file" | awk '{print $1}')
+			size2=$(wc -c "$LastBackupName/$file" |awk '{print $1}')
+
+			if (( $(echo "$size1 - $size2" | bc) != 0 )); then
+				mv "$LastBackupName/$file" "$LastBackupName/$file.$CurDate"
+				cp "$HOME/source/$file" "$LastBackupName/$file"
+				NewNames=$(printf "NewNames\n$file")
+				NamePairs=$(printf "$NamePairs\n$file $file.$CurDate")
+			fi
+		else 
+			cp "$HOME/source/$file" "$LastBackupName/$file"
+			NewNames=$(printf "$NewNames\n$file")
+		fi		
+	done
+	{
+	printf "$NewNames\n"
+	printf "$NamePairs\n"
+
+	} >> $HOME/backup-report
+fi
+printf "\n" >> $HOME/backup-report
+

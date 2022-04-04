@@ -1,0 +1,81 @@
+#!/bin/bash
+FILENAME=$1
+FULLNAME=""
+LOGNAME=""
+
+if [[ $# != 1 ]]; then
+	echo "Incorrect arguments amount"
+	exit 1
+fi
+
+if [[ ! -d $"$HOME/.trash" ]]; then
+	echo "Trash directory doesn't exist"
+	exit 1
+fi
+
+if [[ ! -f $"$HOME/.trash.log" ]]; then
+	echo "Trash.log doesn't exist"
+	exit 1
+fi
+
+slash='/'
+
+if [[ "$FILENAME" == *"$slash"* ]]; then
+	echo "No full path please"
+	exit 1
+fi
+
+
+
+while read LINE
+do 
+	if ! [[ $(basename $(echo $LINE | awk '{print $1}')) = $FILENAME ]]; then
+		continue
+	fi
+	echo $LINE | awk '{print $1}'
+	read -p "Is this your file?  Y/N " answer <&1
+	case $answer in
+	"y" | "Y")
+		FULLNAME=$(echo $LINE | awk '{print $1}')
+		LOGNAME=$(echo $LINE | awk '{print $2}')
+		break;;
+	"N" | "n") continue;;
+	*) echo "Invalid Answer"
+		 exit 1;;
+	esac
+done < $HOME/.trash.log
+
+if [[ $FULLNAME = "" ]]
+then
+	echo "No File Found"
+	exit 1
+fi
+
+if ! [ -d $(dirname "$FULLNAME") ]; then
+	echo "File's directory doesn't exist"
+	read -p "Would you like to backup into Home directory? Y/N " answer <&1
+	case $answer in
+	"y" | "Y") 
+		FULLNAME=$HOME/$FILENAME;;
+	"N" | "n")
+		 exit 0 ;;
+	*)
+		 echo "Invalid Answer"
+		exit 1;;
+	esac
+fi
+
+if [[ ! -f "$HOME/.trash/$LOGNAME" ]]; then
+	echo "File was already restored"
+	exit 1
+fi
+
+
+{ #try
+	ln "$HOME/.trash/$LOGNAME" "$FULLNAME" 
+} 2>/dev/null || { #catch
+	read -p "File could not be saved. Enter new File name: " answer <&1
+	ln "$HOME/.trash/$LOGNAME" "$(dirname "$FULLNAME")/$answer"
+}
+
+rm "$HOME/.trash/$LOGNAME"

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+FILE="$PWD/$1"
+FILENAME=$(date +"%y_%m_%d-%T")
+
+if [[ $# != 1 ]]; then
+	echo "Invalid Arguments amount"
+	exit 1
+fi
+
+if [[ ! -f $FILE ]]; then
+	echo "File not found"
+	exit 1
+fi
+
+if [[ ! -d ~/.trash ]] ; then
+	mkdir ~/.trash
+	touch ~/.trash.log
+fi
+
+ln "$FILE" "$HOME/.trash/$FILENAME"
+echo "$FILE $FILENAME" >> ~/.trash.log
+rm $FILE
